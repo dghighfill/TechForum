@@ -1,0 +1,7 @@
+#Mon Oct 17 22:20:38 CDT 2011
+//org.springframework.ide.eclipse.beans.core.default.version.http\://www.springframework.org/schema/batch=
+//org.springframework.ide.eclipse.beans.core.prefix.http\://www.springframework.org/schema/batch=batch
+eclipse.preferences.version=1
+org.springframework.ide.eclipse.beans.core.default.version.check.classpath=true
+org.springframework.ide.eclipse.beans.core.enable.project.preferences=false
+org.springframework.ide.eclipse.beans.core.loadNamespaceHandlerFromClasspath=true

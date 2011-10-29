@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans:beans xmlns:beans="http://www.springframework.org/schema/beans"
+	xmlns="http://www.springframework.org/schema/batch"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+	    http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+	    http://www.springframework.org/schema/batch
+	    http://www.springframework.org/schema/batch/spring-batch-2.1.xsd">
+
+	<beans:bean id="customerReader" class="org.springframework.batch.item.file.FlatFileItemReader" scope="step">
+		<beans:property name="resource" value="#{jobParameters[customerInFile]}"/>
+		<beans:property name="lineMapper">
+			<beans:bean class="org.springframework.batch.item.file.mapping.DefaultLineMapper">
+				<beans:property name="lineTokenizer">
+					<beans:bean class="org.springframework.batch.item.file.transform.FixedLengthTokenizer">
+						<beans:property name="names" value="id,first,middle,last,address,city,state,zip"/>
+						<beans:property name="columns" value="1-5,6-39,40,41-75,76-110,111-130,131-132,133-137"/>
+					</beans:bean>
+				</beans:property>
+				<beans:property name="fieldSetMapper">
+					<beans:bean class="org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper">
+						<beans:property name="prototypeBeanName" value="customer"/>
+					</beans:bean>
+				</beans:property>
+			</beans:bean>
+		</beans:property>
+	</beans:bean>
+	
+	<beans:bean id="customerWriter" class="org.springframework.batch.item.file.FlatFileItemWriter" scope="step">
+		<beans:property name="resource" value="#{jobParameters[customerOutFile]}"/>
+		<beans:property name="lineAggregator">
+			<beans:bean class="org.springframework.batch.item.file.transform.FormatterLineAggregator">
+				<beans:property name="fieldExtractor">
+					<beans:bean class="org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor">
+						<beans:property name="names" value="first,last,address,city,state"/>
+					</beans:bean>
+				</beans:property>
+				<beans:property name="format" value="%s %s lives at %s in %s %s."></beans:property>
+			</beans:bean>
+		</beans:property>
+	</beans:bean>
+	
+	<beans:bean id="customerDBWriter" class="org.springframework.batch.item.database.JdbcBatchItemWriter" scope="step">
+		<beans:property name="itemSqlParameterSourceProvider">
+			<beans:bean
+				class="org.springframework.batch.item.database.BeanPropertyItemSqlParameterSourceProvider" />
+		</beans:property>
+		<beans:property name="sql"
+			value="INSERT INTO spring.CUSTOMER
+			     ( ID, LAST_MAINT_DATE_TIME, FIRST_NAME, MIDDLE_INITIAL, LAST_NAME, ADDRESS_LINE_1, CITY, STATE, ZIP) 
+			       VALUES
+			     ( :id, NOW(), :first, :middle, :last, :address, :city, :state, :zip)" />
+		<beans:property name="dataSource" ref="dataSource" />
+	</beans:bean>
+
+	<beans:bean id="customer" class="com.dstsystems.techforum.beans.Customer" scope="prototype"/>
+
+	<beans:bean id="compositeWriter"
+		class="org.springframework.batch.item.support.CompositeItemWriter">
+		<beans:property name="delegates">
+			<beans:list>
+				<beans:ref bean="customerWriter" />
+				<beans:ref bean="customerDBWriter" />
+			</beans:list>
+		</beans:property>
+	</beans:bean>
+
+	<job id="customerJob"  incrementer="idIncrementer">	
+		<step id="step1">
+			<tasklet>
+				<chunk reader="customerReader" writer="customerWriter" commit-interval="5000" skip-limit="10">
+					<listeners>
+						<listener ref="skipListener"/>
+					</listeners>
+					<skippable-exception-classes>
+		                <include class="java.lang.Exception"/>
+		            </skippable-exception-classes>
+				</chunk>
+			</tasklet>
+			<listeners>
+				<listener ref="stepListener"/>
+			</listeners>
+		</step>
+		<listeners>
+			<listener ref="loggingListener"/>
+		</listeners>
+	</job>
+	
+	<beans:bean id="loggingListener" class="com.dstsystems.techforum.JobListener"/>
+	<beans:bean id="stepListener" class="com.dstsystems.techforum.StepListener"/>
+	<beans:bean id="skipListener" class="com.dstsystems.techforum.SkipListener"/>
+
+</beans:beans>
+

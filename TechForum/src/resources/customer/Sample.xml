@@ -1,0 +1,210 @@
+  <?xml version="1.0" encoding="UTF-8" ?>
+-
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch.xsd http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
+	-
+	<job id="planConversion" xmlns="http://www.springframework.org/schema/batch"
+		restartable="true">
+		- <!-- Next step is insertProductPlans -->
+		-
+		<step id="readPlans" next="insertRecordKeeperPlans">
+			-
+			<tasklet>
+				<chunk reader="planReader" writer="planWriter"
+					commit-interval="1000" />
+			</tasklet>
+		</step>
+		-
+		<step id="insertRecordKeeperPlans" next="insertProductPlans">
+			- <!-- Insert Records to L16 Table -->
+			-
+			<tasklet>
+				-
+				<chunk reader="recordKeeperPlanReader" writer="recordKeeperPlanDatabaseWriter"
+					commit-interval="1" skip-limit="999">
+					-
+					<skippable-exception-classes>
+						<include class="org.springframework.dao.DataIntegrityViolationException" />
+					</skippable-exception-classes>
+				</chunk>
+			</tasklet>
+		</step>
+		-
+		<step id="insertProductPlans">
+			- <!-- Insert Records to L17 Table -->
+			-
+			<tasklet>
+				-
+				<chunk reader="productPlanReader" writer="productPlanDatabaseWriter"
+					commit-interval="1" skip-limit="999">
+					-
+					<skippable-exception-classes>
+						<include class="org.springframework.dao.DataIntegrityViolationException" />
+					</skippable-exception-classes>
+				</chunk>
+			</tasklet>
+		</step>
+	</job>
+	-
+	<bean id="planReader" class="org.springframework.batch.item.file.FlatFileItemReader"
+		scope="step">
+		<property name="resource" value="#{jobParameters[planIn]}" />
+		-
+		<property name="lineMapper">
+			-
+			<bean class="org.springframework.batch.item.file.mapping.DefaultLineMapper">
+				-
+				<property name="lineTokenizer">
+					-
+					<bean
+						class="org.springframework.batch.item.file.transform.DelimitedLineTokenizer">
+						<property name="names"
+							value="planLob,planId,planType,planName,planYearEnd,deferralPlanLOB,deferralPlanId,stateOfIssue,contractNumber" />
+					</bean>
+				</property>
+				-
+				<property name="fieldSetMapper">
+					-
+					<bean
+						class="org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper">
+						<property name="prototypeBeanName" value="plan" />
+					</bean>
+				</property>
+			</bean>
+		</property>
+	</bean>
+	<bean id="plan" class="com.dstsystems.ricc.batch.planConversion.Plan"
+		scope="prototype" />
+	-
+	<bean id="planWriter"
+		class="org.springframework.batch.item.support.CompositeItemWriter">
+		<property name="delegates">
+			<list>
+				<ref bean="recordKeeperPlanWriter" />
+				<ref bean="productPlanWriter" />
+			</list>
+		</property>
+	</bean>
+	-
+	<bean id="productPlanWriter" class="org.springframework.batch.item.file.FlatFileItemWriter"
+		scope="step">
+		<property name="resource" value="#{jobParameters[planOut]}" />
+		<property name="shouldDeleteIfExists" value="true" />
+		<property name="lineAggregator" ref="planFormattedLineAggregator" />
+	</bean>
+	-
+	<bean id="recordKeeperPlanWriter" class="org.springframework.batch.item.file.FlatFileItemWriter"
+		scope="step">
+		<property name="resource" value="#{jobParameters[recordKeeperPlanOut]}" />
+		<property name="shouldDeleteIfExists" value="true" />
+		<property name="lineAggregator" ref="recordKeeperPlanformattedLineAggregator" />
+	</bean>
+	-
+	<bean id="planFormattedLineAggregator"
+		class="org.springframework.batch.item.file.transform.FormatterLineAggregator">
+		-
+		<property name="fieldExtractor">
+			-
+			<bean
+				class="org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor">
+				<property name="names" value="planLob,planId,contractNumber" />
+			</bean>
+		</property>
+		<property name="format" value="%s,%s,%s" />
+	</bean>
+	-
+	<bean id="recordKeeperPlanformattedLineAggregator"
+		class="org.springframework.batch.item.file.transform.FormatterLineAggregator">
+		-
+		<property name="fieldExtractor">
+			-
+			<bean
+				class="org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor">
+				<property name="names"
+					value="planLob,planId,planType,planName,planYearEnd,deferralPlanLOB,deferralPlanId,stateOfIssue" />
+			</bean>
+		</property>
+		<property name="format" value="%s,%s,%s,%s,%s,%s,%s,%s" />
+	</bean>
+	-
+	<bean id="recordKeeperPlanReader" class="org.springframework.batch.item.file.FlatFileItemReader"
+		scope="step">
+		<property name="resource" value="#{jobParameters[recordKeeperPlanOut]}" />
+		-
+		<property name="lineMapper">
+			-
+			<bean class="org.springframework.batch.item.file.mapping.DefaultLineMapper">
+				-
+				<property name="lineTokenizer">
+					-
+					<bean
+						class="org.springframework.batch.item.file.transform.DelimitedLineTokenizer">
+						<property name="names"
+							value="planLob,planId,planType,planName,planYearEnd,deferralPlanLOB,deferralPlanId,stateOfIssue" />
+					</bean>
+				</property>
+				-
+				<property name="fieldSetMapper">
+					-
+					<bean
+						class="org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper">
+						<property name="prototypeBeanName" value="plan" />
+					</bean>
+				</property>
+			</bean>
+		</property>
+	</bean>
+	-
+	<bean id="recordKeeperPlanDatabaseWriter"
+		class="org.springframework.batch.item.database.JdbcBatchItemWriter"
+		scope="step">
+		- <!-- <property name="assertUpdates" value="true" /> -->
+		-
+		<property name="itemSqlParameterSourceProvider">
+			<bean
+				class="org.springframework.batch.item.database.BeanPropertyItemSqlParameterSourceProvider" />
+		</property>
+		<property name="sql"
+			value="INSERT INTO RICC.L16 ( RECKPR_RECKPG_SYSTEM_ID, RECKPG_SYS_PLN_EXTL_LOB_ID, RECKPG_SYS_PLN_EXTL_PLAN_ID, LAST_MNT_DATE_TIME, LAST_MNT_OPID, RECKPG_SYS_PLN_PLAN_TYPE_ID, RECKPG_SYS_PLN_PLAN_NM, RECKPG_SYS_PLN_YE_MTH_DAY_DT, RECKPG_DFRL_PLN_EXTL_LOB_ID, RECKPG_DFRL_PLN_EXTL_PLN_ID, STATE_OF_ISSUE_STE_CNY_ID ) VALUES( 5, :planLob, :planId, '2011-10-06 00:00:00.00000', 'PLAN_CONVERSION', :planType, :planName, :planYearEnd, :deferralPlanLOB, :deferralPlanId, :stateOfIssue )" />
+		<property name="dataSource" ref="dataSource" />
+	</bean>
+	-
+	<bean id="productPlanReader" class="org.springframework.batch.item.file.FlatFileItemReader"
+		scope="step">
+		<property name="resource" value="#{jobParameters[planOut]}" />
+		-
+		<property name="lineMapper">
+			-
+			<bean class="org.springframework.batch.item.file.mapping.DefaultLineMapper">
+				-
+				<property name="lineTokenizer">
+					-
+					<bean
+						class="org.springframework.batch.item.file.transform.DelimitedLineTokenizer">
+						<property name="names" value="planLob,planId,contractNumber" />
+					</bean>
+				</property>
+				-
+				<property name="fieldSetMapper">
+					-
+					<bean
+						class="org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper">
+						<property name="prototypeBeanName" value="plan" />
+					</bean>
+				</property>
+			</bean>
+		</property>
+	</bean>
+	<bean id="productPlanDatabaseWriter"
+		class="org.springframework.batch.item.database.JdbcBatchItemWriter"
+		scope="step">
+		<property name="itemSqlParameterSourceProvider">
+			<bean
+				class="org.springframework.batch.item.database.BeanPropertyItemSqlParameterSourceProvider" />
+		</property>
+		<property name="sql"
+			value="INSERT INTO RICC.L17 ( PRODUCT_SPONSOR_ID, PRODUCT_ID, RECKPR_RECKPG_SYSTEM_ID, RECKPG_SYS_PLN_EXTL_LOB_ID, RECKPG_SYS_PLN_EXTL_PLAN_ID, LAST_MNT_DATE_TIME, LAST_MNT_OPID, PRD_PLAN_CONTRACT_NBR_TX, PRD_PLAN_STR_CERT_NBR_CT, PRD_PLAN_NEXT_CERT_NBR_CT ) VALUES( 1, 3, 5, :planLob, :planId, '2011-10-06 00:00:00.00000', 'PLAN_CONVERSION', :contractNumber, 100, 100 )" />
+		<property name="dataSource" ref="dataSource" />
+	</bean>
+</beans><?xml version="1.0" encoding="UTF-8"?>
