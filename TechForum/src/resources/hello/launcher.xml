@@ -9,6 +9,6 @@
 	
 	<beans:import resource="classpath:resources/config/data-source-context.xml" />
 	<beans:import resource="classpath:resources/config/launcher-config.xml" />
-	<beans:import resource="classpath:resources/helloWorld/hello-job.xml" />
+	<beans:import resource="classpath:resources/hello/hello-job.xml" />
 	
 </beans:beans>

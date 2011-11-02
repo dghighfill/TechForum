@@ -8,7 +8,7 @@
 	    http://www.springframework.org/schema/batch/spring-batch-2.1.xsd">
 
 	<beans:bean id="helloWorld"
-		class="com.dstsystems.springbatch.chapter2.HelloWorld"/>
+		class="com.dstsystems.techforum.hello.Hello"/>
 		
 	<step id="helloWorldStep">
 		<tasklet ref="helloWorld"/>
@@ -21,6 +21,6 @@
 		</listeners>
 	</job>
 	
-	<beans:bean id="loggingListener" class="com.dstsystems.springbatch.chapter2.JobListener"/>
+	<beans:bean id="loggingListener" class="com.dstsystems.techforum.JobListener"/>
 
 </beans:beans>
