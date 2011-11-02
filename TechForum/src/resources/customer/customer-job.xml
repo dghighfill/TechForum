@@ -68,7 +68,7 @@
 	<job id="customerJob"  incrementer="idIncrementer">	
 		<step id="step1">
 			<tasklet>
-				<chunk reader="customerReader" writer="customerWriter" commit-interval="5000" skip-limit="10">
+				<chunk reader="customerReader" writer="customerWriter" commit-interval="100" skip-limit="10">
 					<listeners>
 						<listener ref="skipListener"/>
 					</listeners>
@@ -86,6 +86,69 @@
 		</listeners>
 	</job>
 	
+	<job id="customerJob_1000"  incrementer="idIncrementer">	
+		<step id="step1_1000">
+			<tasklet>
+				<chunk reader="customerReader" writer="customerDBWriter" commit-interval="100" skip-limit="10">
+					<listeners>
+						<listener ref="skipListener"/>
+					</listeners>
+					<skippable-exception-classes>
+		                <include class="java.lang.Exception"/>
+		            </skippable-exception-classes>
+				</chunk>
+			</tasklet>
+			<listeners>
+				<listener ref="stepListener"/>
+			</listeners>
+		</step>
+		<listeners>
+			<listener ref="loggingListener"/>
+		</listeners>
+	</job>
+
+	<job id="customerJob_10000"  incrementer="idIncrementer">	
+		<step id="step1_10000">
+			<tasklet>
+				<chunk reader="customerReader" writer="customerDBWriter" commit-interval="5000" skip-limit="10">
+					<listeners>
+						<listener ref="skipListener"/>
+					</listeners>
+					<skippable-exception-classes>
+		                <include class="java.lang.Exception"/>
+		            </skippable-exception-classes>
+				</chunk>
+			</tasklet>
+			<listeners>
+				<listener ref="stepListener"/>
+			</listeners>
+		</step>
+		<listeners>
+			<listener ref="loggingListener"/>
+		</listeners>
+	</job>
+		
+	<job id="customerJob_composite"  incrementer="idIncrementer">	
+		<step id="step1_composite">
+			<tasklet>
+				<chunk reader="customerReader" writer="compositeWriter" commit-interval="5000" skip-limit="10">
+					<listeners>
+						<listener ref="skipListener"/>
+					</listeners>
+					<skippable-exception-classes>
+		                <include class="java.lang.Exception"/>
+		            </skippable-exception-classes>
+				</chunk>
+			</tasklet>
+			<listeners>
+				<listener ref="stepListener"/>
+			</listeners>
+		</step>
+		<listeners>
+			<listener ref="loggingListener"/>
+		</listeners>
+	</job>
+
 	<beans:bean id="loggingListener" class="com.dstsystems.techforum.JobListener"/>
 	<beans:bean id="stepListener" class="com.dstsystems.techforum.StepListener"/>
 	<beans:bean id="skipListener" class="com.dstsystems.techforum.SkipListener"/>
