@@ -148,10 +148,56 @@
 			<listener ref="loggingListener"/>
 		</listeners>
 	</job>
+	
+	<job id="conditionalJob"  incrementer="idIncrementer">	
+		<step id="step1_conditional">
+			<tasklet>
+				<chunk reader="customerReader" writer="customerWriter" commit-interval="5000"/>
+			</tasklet>
+			<next on="*" to="step2_conditional"/>
+			<next on="FAILED" to="step3_conditional"/>
+			<listeners>
+				<listener ref="stepListener"/>
+			</listeners>
+		</step>
+		<step id="step2_conditional" next="step4_conditional">
+			<tasklet ref="helloWorld"/>
+		</step>
+		<step id="step3_conditional" next="step4_conditional">
+			<tasklet ref="helloWorld"/>
+		</step>
+		<step id="step4_conditional">
+			<tasklet ref="helloWorld"/>
+		</step>
+	</job>
+
+	<job id="parallelJob" incrementer="idIncrementer">
+		<split id="split">
+			<flow>
+				<step id="step1_Parallel" next="step2_Parallel">
+					<tasklet>
+						<chunk reader="customerReader" writer="customerWriter" commit-interval="5000"/>
+					</tasklet>
+					<listeners>
+						<listener ref="stepListener"/>
+					</listeners>
+				</step>
+				<step id="step2_Parallel">
+					<tasklet ref="helloWorld"/>
+				</step>
+			</flow>
+			<flow>
+				<step id="step3_Parallel">
+					<tasklet ref="helloWorld"/>
+				</step>
+			</flow>	
+		</split>
+	</job>
 
 	<beans:bean id="loggingListener" class="com.dstsystems.techforum.JobListener"/>
 	<beans:bean id="stepListener" class="com.dstsystems.techforum.StepListener"/>
 	<beans:bean id="skipListener" class="com.dstsystems.techforum.SkipListener"/>
+	<beans:bean id="helloWorld" class="com.dstsystems.techforum.hello.Hello"/>
 
 </beans:beans>
 
